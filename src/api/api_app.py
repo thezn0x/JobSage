@@ -1,15 +1,26 @@
+from typing import Any, Dict, List
+
 from src.analytics.main_analyzer import Analyzer
 from src.utils.logger import get_logger
 from datetime import datetime
 from fastapi import FastAPI, HTTPException
-
-analyzer = Analyzer()
-logger = get_logger(__name__)
+from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI(
     title="SkillScout API",
     description="API for SkillScout analytics",
     version="1.0.0"
 )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+analyzer = Analyzer()
+logger = get_logger(__name__)
 
 @app.get('/')
 def root():
@@ -17,7 +28,7 @@ def root():
         "service": "SkillScout API",
         "version": "1.0.0",
         "status": "operational",
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now().isoformat() + "Z",
         "documentation": "/docs",
         "endpoints": [
             "/skills/trending",
@@ -25,7 +36,7 @@ def root():
     }
 
 @app.get(path='/skills/trending')
-def analyze_skills(limit:int = 10):
+def analyze_skills(limit:int = 10) -> List[Dict[str,Any]]:
     response = {"success": False, "error": None}
     try:
         skills = analyzer.get_top_skills(limit=limit)
@@ -44,7 +55,7 @@ def analyze_skills(limit:int = 10):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get('/skills/detail/{skill_name}')
-def skill_detail(skill_name:str):
+def skill_detail(skill_name:str) -> List[Dict[str,Any]]:
     response = {"success": False, "error": None}
     try:
         skill = analyzer.get_skill_details(skill_name)
@@ -59,7 +70,7 @@ def skill_detail(skill_name:str):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get('/skills/combinations/{skill_name}')
-def skill_combinations(skill_name:str, limit:int = 5):
+def skill_combinations(skill_name:str, limit:int = 5)-> List[Dict[str,Any]]:
     response = {"success": False, "error": None}
     try:
         combos = analyzer.get_skill_combinations(skill_name, limit)
@@ -77,7 +88,7 @@ def skill_combinations(skill_name:str, limit:int = 5):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get("/job/locations")
-def job_locations():
+def job_locations() -> List[Dict[str,Any]]:
     response = {"success": False, "error": None}
     try:
         value = analyzer.get_jobs_by_location()
