@@ -1,5 +1,4 @@
-from typing import Any, Dict, List
-
+from typing import Any, Dict, Union
 from src.analytics.main_analyzer import Analyzer
 from src.utils.logger import get_logger
 from datetime import datetime
@@ -36,7 +35,7 @@ def root():
     }
 
 @app.get(path='/skills/trending')
-def analyze_skills(limit:int = 10) -> List[Dict[str,Any]]:
+def analyze_skills(limit:int = 10) -> Union[Dict[str,Any],None]:
     response = {"success": False, "error": None}
     try:
         skills = analyzer.get_top_skills(limit=limit)
@@ -55,7 +54,7 @@ def analyze_skills(limit:int = 10) -> List[Dict[str,Any]]:
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get('/skills/detail/{skill_name}')
-def skill_detail(skill_name:str) -> List[Dict[str,Any]]:
+def skill_detail(skill_name:str) -> Union[Dict[str,Any],None]:
     response = {"success": False, "error": None}
     try:
         skill = analyzer.get_skill_details(skill_name)
@@ -70,7 +69,7 @@ def skill_detail(skill_name:str) -> List[Dict[str,Any]]:
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get('/skills/combinations/{skill_name}')
-def skill_combinations(skill_name:str, limit:int = 5)-> List[Dict[str,Any]]:
+def skill_combinations(skill_name:str, limit:int = 5)-> Union[Dict[str,Any],None]:
     response = {"success": False, "error": None}
     try:
         combos = analyzer.get_skill_combinations(skill_name, limit)
@@ -88,12 +87,30 @@ def skill_combinations(skill_name:str, limit:int = 5)-> List[Dict[str,Any]]:
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get("/job/locations")
-def job_locations() -> List[Dict[str,Any]]:
+def job_locations() -> Union[Dict[str,Any],None]:
     response = {"success": False, "error": None}
     try:
         value = analyzer.get_jobs_by_location()
         response['success'] = True
         response['jobs_by_locations'] = value
+        return response
+    except ConnectionError as e:
+        logger.error('Check your connection and try again later: %s', e)
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable")
+    except IndexError as e:
+        logger.error('No skills found: %s', e)
+        raise HTTPException(status_code=404, detail="No skills data available")
+    except Exception as e:
+        logger.exception('Critical internal error in %s: %s', __name__, e)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/skills/trending/{city_name}")
+def skill_trending(city_name:str, limit:int =10) -> Union[Dict[str,Any],None]:
+    response = {"success": False, "error": None}
+    try:
+        value = analyzer.get_top_skills_in_city(city_name,limit)
+        response['success'] = True
+        response['trending_skills'] = value
         return response
     except ConnectionError as e:
         logger.error('Check your connection and try again later: %s', e)

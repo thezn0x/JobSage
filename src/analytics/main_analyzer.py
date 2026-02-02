@@ -134,8 +134,31 @@ class  Analyzer:
             logger.exception(f"Error getting jobs and locations: {e}")
             return []
 
+    def get_top_skills_in_city(self, city:str, limit:int =10):
+        try:
+            query = """
+            SELECT 
+                s.skill_name,
+                COUNT(DISTINCT j.job_id) as job_count
+            FROM locations l
+            JOIN job_locations jl USING(location_id)
+            JOIN jobs j ON jl.job_id = j.job_id
+            JOIN job_skills js ON j.job_id = js.job_id
+            JOIN skills s USING(skill_id)
+            WHERE l.city = %s
+            GROUP BY s.skill_id, s.skill_name
+            ORDER BY job_count DESC
+            LIMIT %s
+            """
+            results = self.get_result(query, [city, limit])
+            logger.info(f"Retrieved top {len(results)} skills in {city}")
+            return  results
+        except Exception as e:
+            logger.exception(f"Error getting jobs and locations: {e}")
+            return []
+
 # testing
 if __name__ == "__main__":
     analyzer = Analyzer()
-    resp = analyzer.get_jobs_by_location()
+    resp = analyzer.get_top_skills_in_city('Lahore')
     print(resp)

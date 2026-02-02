@@ -1,6 +1,7 @@
 # Python virtual environment
 venv/
 .venv/
+airflow_env/
 
 # Python cache
 __pycache__/
