@@ -117,7 +117,7 @@ class  Analyzer:
             logger.exception(f"Error getting skill combinations: {e}")
             return []
 
-    def get_jobs_by_location(self):
+    def get_jobs_by_location(self) -> List[Dict[str, Any]]:
         try:
             query = """
                     SELECT l.location_id, l.city, l.country,
@@ -134,7 +134,7 @@ class  Analyzer:
             logger.exception(f"Error getting jobs and locations: {e}")
             return []
 
-    def get_top_skills_in_city(self, city:str, limit:int =10):
+    def get_top_skills_in_city(self, city:str, limit:int =10) -> List[Dict[str, Any]]:
         try:
             query = """
             SELECT 
@@ -157,8 +157,105 @@ class  Analyzer:
             logger.exception(f"Error getting jobs and locations: {e}")
             return []
 
-# testing
-if __name__ == "__main__":
-    analyzer = Analyzer()
-    resp = analyzer.get_top_skills_in_city('Lahore')
-    print(resp)
+    def get_top_city_hiring(self) -> Dict[str, Any]:
+        try:
+            query = """
+            SELECT 
+                l.city,
+                COUNT(*) as job_count
+            FROM job_locations jl
+            JOIN locations l ON jl.location_id = l.location_id
+            GROUP BY jl.location_id, l.city
+                    """
+            results = self.get_result(query)
+            top_city = results[0]
+            logger.info(f"Retrieved top city hiring: {len(results)}")
+            return top_city
+        except Exception as e:
+            logger.exception(f"Error getting 'Top city hiring': {e}")
+            return {}
+
+    def get_companies_in_city(self, city:str, limit:int =10) -> List[Dict[str, Any]]:
+        try:
+            query = """
+                SELECT 
+                    c.name as company_name,
+                    COUNT(DISTINCT j.job_id) as job_count
+                FROM locations l
+                JOIN job_locations jl USING(location_id)
+                JOIN jobs j ON jl.job_id = j.job_id
+                JOIN companies c USING(company_id)
+                WHERE l.city = %s
+                GROUP BY c.company_id, c.name
+                ORDER BY job_count DESC
+                LIMIT %s"""
+            results = self.get_result(query, [city, limit])
+            logger.info(f"Retrieved {len(results)} companies in {city}")
+            return results
+        except Exception as e:
+            logger.exception(f"Error getting companies: {e}")
+
+    def get_top_hiring_companies(self, limit:int =10) -> List[Dict[str, Any]]:
+        try:
+            query = """
+                    SELECT c.name,
+                           COUNT(j.job_id) as job_count,
+                           ROUND( 
+                                   COUNT(j.job_id) * 100.0 /
+                                   (SELECT COUNT(*) FROM jobs),
+                                   2
+                           )               as percentage
+                    FROM companies c
+                             JOIN jobs j USING (company_id)
+                    GROUP BY c.company_id, c.name
+                    ORDER BY job_count DESC
+                        LIMIT %s
+                    """
+            results = self.get_result(query, [limit])
+            logger.info(f"Found {len(results)} companies")
+            return results
+        except Exception as e:
+            logger.exception(f"Error getting companies: {e}")
+            return []
+
+    def get_company_skills(self, company_name:str, limit:int =10) -> List[Dict[str, Any]]:
+        try:
+            query = """
+                    SELECT s.skill_name,
+                           COUNT(DISTINCT j.job_id) as job_count
+                    FROM companies c
+                             JOIN jobs j USING (company_id)
+                             JOIN job_skills js ON j.job_id = js.job_id
+                             JOIN skills s USING (skill_id)
+                    WHERE c.name = %s
+                    GROUP BY s.skill_id, s.skill_name
+                    ORDER BY job_count DESC
+                        LIMIT %s
+                    """
+            results = self.get_result(query, [company_name, limit])
+            logger.info(f"Found {len(results)} skills for {company_name}")
+            return results
+        except Exception as e:
+            logger.exception(f"Error getting company skills: {e}")
+            return []
+
+    def get_company_locations(self, company_name:str) -> List[Dict[str, Any]]:
+        try:
+            query = """
+                    SELECT l.city,
+                           l.country,
+                           COUNT(DISTINCT j.job_id) as job_count
+                    FROM companies c
+                             JOIN jobs j USING (company_id)
+                             JOIN job_locations jl ON j.job_id = jl.job_id
+                             JOIN locations l ON jl.location_id = l.location_id
+                    WHERE c.name = %s
+                    GROUP BY l.location_id, l.city, l.country
+                    ORDER BY job_count DESC
+                    """
+            results = self.get_result(query, [company_name])
+            logger.info(f"Found {len(results)} locations for {company_name}")
+            return results
+        except Exception as e:
+            logger.exception(f"Error getting company locations: {e}")
+            return []

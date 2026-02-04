@@ -1,3 +1,5 @@
+from pathlib import Path
+import os
 from config.settings import TRANSFORMERS
 from src.loaders.main_loader import Loader
 from config.settings import LOADERS
@@ -6,15 +8,33 @@ from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 DATA_MAP = {
-    "rozee" : TRANSFORMERS["rozee"]["output_path"],
-    "careerjet" : TRANSFORMERS["careerjet"]["output_path"]
+    "rozee" : os.path.abspath(TRANSFORMERS["rozee"]["output_path"]),
+    "careerjet" : os.path.abspath(TRANSFORMERS["careerjet"]["output_path"])
 }
+
+class PathError(Exception):
+    pass
+
+def filter_(data_map:Dict):
+    new_map={}
+    for k,v in data_map.items():
+        if not isinstance(v,str):
+            logger.warning(f"Skipping {k}: not a string (type: {type(v)})")
+            continue
+        if Path(v).exists():
+            new_map[k] = v
+            logger.debug(f"Included {k}: {v}")
+        else:
+            logger.warning(f"Skipping {k}: path does not exist - {v}")
+        if not new_map:
+            logger.error("No valid file paths found in data_map")
+    return new_map
 
 def main() -> Union[Dict[str,Any],None]:
     logger.info("Starting Loader...")
     try:
         loader = Loader(__name__)
-        data = loader.get_data(DATA_MAP)
+        data = loader.get_data(filter_(DATA_MAP))
         logger.info("Loading skills to the database...")
         skill_keys = loader.load_skills("skills",data)
         logger.info("Loading locations to the database...")
