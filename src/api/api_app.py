@@ -66,7 +66,13 @@ def root():
             ],
             "locations": [
                 "GET /locations/jobs",
-                "GET /locations/cities/top"
+                "GET /locations/cities/top",
+                "GET /locations/{city_name}/companies"
+            ],
+            "companies": [
+                "GET /companies/locations/{company_name}",
+                "GET /companies/{company_name}/skills",
+                "GET /companies/top"
             ]
         }
     }
