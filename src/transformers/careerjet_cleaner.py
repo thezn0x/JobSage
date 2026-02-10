@@ -1,5 +1,5 @@
 from src.utils.logger import get_logger
-from utils import handle_errors
+from src.utils.error_handler import handle_errors
 from .main_transformer import BaseCleaner
 import re
 from datetime import datetime, timedelta
@@ -15,7 +15,6 @@ class CareerjetCleaner(BaseCleaner):
     def calculate_apply_before(posted_date: Optional[str]) -> Optional[str]:
         if not posted_date:
             return None
-
         try:
             posted_dt = datetime.fromisoformat(posted_date)
             apply_before_dt = posted_dt + timedelta(days=10)
@@ -24,7 +23,7 @@ class CareerjetCleaner(BaseCleaner):
             logger.error(f"Error calculating apply_before: {e}")
             return None
 
-    @handle_errors
+    @handle_errors()
     def transform(self, job: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         cleaned = job.copy()
         cleaned = self.clean_basic_fields(cleaned)

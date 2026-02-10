@@ -1,12 +1,9 @@
 from src.utils.logger import get_logger
-from config.settings import LOADERS
+from config.settings import DATABASE_URL
 from typing import List, Dict, Any, Union
-from dotenv import load_dotenv
 from znpg import Database
 import json
-import os
 
-load_dotenv(LOADERS["dotenv_path"])
 logger = get_logger(__name__)
 class Loader:
     def __init__(self,name:str):
@@ -32,7 +29,7 @@ class Loader:
     def load_get_keys(table:str, to_load:List[Dict[str,Any]], columns:List[str]) -> Union[None,List[Dict[str,Any]]]:
         try:
             with Database() as db:
-                db.url_connect(os.getenv("DATABASE_URL"))
+                db.url_connect(DATABASE_URL)
                 db.bulk_insert(table,to_load,"DO NOTHING")
                 keys = db.select(table, columns)
             return keys

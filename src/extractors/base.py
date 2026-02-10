@@ -2,7 +2,7 @@ from abc import abstractmethod, ABC
 from playwright.sync_api import sync_playwright
 import json
 from typing import List,Dict,Any,Union
-from utils import handle_errors
+from src.utils.error_handler import handle_errors
 from .roles import one_role
 from src.utils.logger import get_logger
 
@@ -19,7 +19,7 @@ class Extractor(ABC):
     def extract(self, card):
         pass
 
-    @handle_errors
+    @handle_errors()
     def fetch_jobs(self, max_pages:int = 1) -> Union[bool,List[Any]]:
         jobs = []
         with sync_playwright() as p:
@@ -43,7 +43,7 @@ class Extractor(ABC):
         return " ".join(text.split()).strip(" ,.-") if text else ""
 
     @staticmethod
-    @handle_errors
+    @handle_errors()
     def save_jobs(filename: str, jobs: List[Dict]):
         logger.info("Saving jobs...")
         with open(filename, "w") as f:

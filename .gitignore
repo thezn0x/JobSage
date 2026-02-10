@@ -36,3 +36,6 @@ fetchdatabase.sh
 
 # lock
 uv.lock
+
+# other
+tests/

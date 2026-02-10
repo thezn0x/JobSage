@@ -1,6 +1,6 @@
 [project]
-name = "SkillScout"
-version = "0.1.0"
+name = "JobSage"
+version = "1.0.0"
 description = "Pakistan's first data-driven career intelligence platform"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -11,4 +11,5 @@ dependencies = [
     'pytest>=7.4.0',
     "fastapi[standard]>=0.128.0",
     "uvicorn>=0.40.0",
+    "apscheduler>=3.11.2"
 ]

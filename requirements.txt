@@ -1,6 +1,7 @@
-znpg>=1.1.1 # For Databases (Yes fools! I made this!)
+znpg>=1.2.0 # For Databases (Yes fools! I made this!)
 playwright>=1.30.0 # For web scraping
 python-dotenv>=1.0.0 # For environment variables
 pytest>=7.4.0 # For Testing
-fastapi[standard]>=0.128.0 # For The REST API
+fastapi[standard]>=0.128.0 # For the REST API
 uvicorn>=0.40.0 # For running the REST API
+apscheduler>=3.11.2 # For scheduler

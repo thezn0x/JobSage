@@ -1,6 +1,5 @@
 from datetime import datetime
-
-from utils import handle_errors
+from src.utils.error_handler import handle_errors
 from .base import Extractor
 from src.utils.logger import get_logger
 from typing import Dict,Any,Union
@@ -9,7 +8,7 @@ from typing import Dict,Any,Union
 logger = get_logger(__name__)
 
 class CareerjetExtractor(Extractor):
-    @handle_errors
+    @handle_errors()
     def extract(self,card) -> Union[bool,Dict[str,Any]]:
         job={}
         def get_text(selector:str):

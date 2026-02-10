@@ -1,8 +1,8 @@
-# SkillScout 🚀
+# JobSage 🚀
 
 **Pakistan's First Career Intelligence Platform**
 
-SkillScout is a data-driven platform designed to bring transparency to Pakistan's tech job market. It aggregates job postings from multiple platforms, extracts key insights like in-demand skills and salary ranges, and provides actionable career intelligence for developers and students.
+JobSage is a data-driven platform designed to bring transparency to Pakistan's tech job market. It aggregates job postings from multiple platforms, extracts key insights like in-demand skills and salary ranges, and provides actionable career intelligence for developers and students.
 
 ---
 
@@ -57,8 +57,8 @@ SkillScout is a data-driven platform designed to bring transparency to Pakistan'
 
 ### 2. Clone the Repository
 ```bash
-git clone https://github.com/thezn0x/SkillScout.git
-cd SkillScout
+git clone https://github.com/thezn0x/JobSage.git
+cd JobSage
 ```
 
 ### 3. Install Dependencies
@@ -108,7 +108,7 @@ python scripts/run_loaders.py
 
 ## 📊 Database Schema
 
-SkillScout uses a normalized PostgreSQL schema to ensure data integrity and efficient querying:
+JobSage uses a normalized PostgreSQL schema to ensure data integrity and efficient querying:
 
 - **jobs:** Core table for job posting details.
 - **companies:** Unique list of hiring organizations.
@@ -136,7 +136,7 @@ For more detailed information, please refer to the files in the `docs/` director
 
 ## 🤝 Contributing
 
-Contributions are welcome! If you'd like to improve SkillScout, please:
+Contributions are welcome! If you'd like to improve JobSage, please:
 1. Fork the repository.
 2. Create a feature branch.
 3. Commit your changes.

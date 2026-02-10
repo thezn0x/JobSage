@@ -4,8 +4,7 @@ from config.settings import LOADERS
 from dotenv import load_dotenv
 from znpg import Database
 import os
-
-from utils import handle_errors
+from src.utils.error_handler import handle_errors
 
 load_dotenv(LOADERS["dotenv_path"])
 logger = get_logger(__name__)
@@ -27,7 +26,7 @@ class Analyzer:
             logger.exception('Critical error in %s', __name__)
             raise ConnectionError('Error while connecting to the database')
 
-    @handle_errors
+    @handle_errors()
     def get_top_skills(self, limit: int = 10) -> List[Dict[str, Any]]:
         query = """
             SELECT 
@@ -51,7 +50,7 @@ class Analyzer:
         logger.info(f"Retrieved top {len(results)} skills")
         return results
 
-    @handle_errors
+    @handle_errors()
     def get_skill_details(self, skill_name: str) -> Optional[Dict[str, Any]]:
         query = """
             SELECT 
@@ -76,7 +75,7 @@ class Analyzer:
             logger.warning(f"Skill not found: {skill_name}")
             return None
 
-    @handle_errors
+    @handle_errors()
     def get_skill_combinations(self, skill_name: str, limit: int = 5) -> List[Dict[str, Any]]:
         query = """
             WITH target_jobs AS (
@@ -107,7 +106,7 @@ class Analyzer:
         logger.info(f"Found {len(results)} skills that pair with {skill_name}")
         return results
 
-    @handle_errors
+    @handle_errors()
     def get_jobs_by_location(self) -> List[Dict[str, Any]]:
         query = """
                 SELECT l.location_id, l.city, l.country,
@@ -121,7 +120,7 @@ class Analyzer:
         logger.info(f"Retrieved {len(results)} jobs by location")
         return results
 
-    @handle_errors
+    @handle_errors()
     def get_top_skills_in_city(self, city: str, limit: int = 10) -> List[Dict[str, Any]]:
         query = """
         SELECT 
@@ -141,7 +140,7 @@ class Analyzer:
         logger.info(f"Retrieved top {len(results)} skills in {city}")
         return results
 
-    @handle_errors
+    @handle_errors()
     def get_top_city_hiring(self) -> Dict[str, Any]:
         query = """
         SELECT 
@@ -156,7 +155,7 @@ class Analyzer:
         logger.info(f"Retrieved top city hiring: {len(results)}")
         return top_city
 
-    @handle_errors
+    @handle_errors()
     def get_companies_in_city(self, city: str, limit: int = 10) -> List[Dict[str, Any]]:
         query = """
             SELECT 
@@ -174,7 +173,7 @@ class Analyzer:
         logger.info(f"Retrieved {len(results)} companies in {city}")
         return results
 
-    @handle_errors
+    @handle_errors()
     def get_top_hiring_companies(self, limit: int = 10) -> List[Dict[str, Any]]:
         query = """
                 SELECT c.name,
@@ -194,7 +193,7 @@ class Analyzer:
         logger.info(f"Found {len(results)} companies")
         return results
 
-    @handle_errors
+    @handle_errors()
     def get_company_skills(self, company_name: str, limit: int = 10) -> List[Dict[str, Any]]:
         query = """
                 SELECT s.skill_name,
@@ -212,7 +211,7 @@ class Analyzer:
         logger.info(f"Found {len(results)} skills for {company_name}")
         return results
 
-    @handle_errors
+    @handle_errors()
     def get_company_locations(self, company_name: str) -> List[Dict[str, Any]]:
         query = """
                 SELECT l.city,

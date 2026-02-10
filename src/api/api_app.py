@@ -7,7 +7,7 @@ from datetime import datetime
 from functools import wraps
 
 app = FastAPI(
-    title="SkillScout API",
+    title="JobSage API",
     description="Job market analytics API",
     version="1.0.0"
 )
@@ -24,7 +24,6 @@ analyzer = Analyzer()
 logger = get_logger(__name__)
 
 def handle_errors(func: Callable) -> Callable:
-    """Decorator to handle common API errors and ensure consistent response format"""
     @wraps(func)
     def wrapper(*args, **kwargs):
         try:
@@ -52,7 +51,7 @@ def handle_errors(func: Callable) -> Callable:
 @app.get('/')
 def root():
     return {
-        "service": "SkillScout API",
+        "service": "JobSage API",
         "version": "1.0.0",
         "status": "operational",
         "timestamp": datetime.now().isoformat() + "Z",

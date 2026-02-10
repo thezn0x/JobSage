@@ -1,5 +1,5 @@
 from src.utils.logger import get_logger
-from utils import handle_errors
+from src.utils.error_handler import handle_errors
 from .main_transformer import BaseCleaner
 from datetime import datetime, timedelta
 from config.settings import TRANSFORMERS
@@ -11,7 +11,7 @@ rozee_cfg = TRANSFORMERS["rozee"]
 
 class RozeeCleaner(BaseCleaner):
     @staticmethod
-    @handle_errors
+    @handle_errors()
     def calculate_apply_before(posted_date: Optional[str]) -> Optional[str]:
         if not posted_date:
             return None
@@ -19,7 +19,7 @@ class RozeeCleaner(BaseCleaner):
         apply_before_dt = posted_dt + timedelta(days=10)
         return apply_before_dt.isoformat()
 
-    @handle_errors
+    @handle_errors()
     def transform(self, job: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         cleaned = job.copy()
         cleaned = self.clean_basic_fields(cleaned)

@@ -1,7 +1,6 @@
 import re
 from datetime import datetime, timedelta
-
-from utils import handle_errors
+from src.utils.error_handler import handle_errors
 from .soft_skills import SOFT_SKILLS_KEYWORDS
 from src.utils.logger import get_logger
 from abc import ABC, abstractmethod
@@ -15,7 +14,7 @@ class BaseCleaner(ABC):
         self.extractor_name = extractor_name
 
     @staticmethod
-    @handle_errors
+    @handle_errors()
     def parse_date(date_str: str) -> Optional[str]:
         if not date_str:
             return None
@@ -63,7 +62,7 @@ class BaseCleaner(ABC):
             return text.strip()
         return ""
 
-    @handle_errors
+    @handle_errors()
     def clean_basic_fields(self, job: Dict[str, Any]) -> Dict[str, Any]:
         cleaned_job:dict = {"title": self._clean_text(job.get("title", "")),
                             "application_url": self._clean_text(job.get("url", "")),
@@ -80,7 +79,7 @@ class BaseCleaner(ABC):
         return cleaned_job
 
     @staticmethod
-    @handle_errors
+    @handle_errors()
     def clean_salary(salary_str: str) -> tuple:
         if not salary_str:
             return None, None
@@ -117,7 +116,7 @@ class BaseCleaner(ABC):
         
         return soft_skills, core_skills
 
-    @handle_errors
+    @handle_errors()
     def clean_jobs(self, jobs: List) -> List[Dict[str, Any]]:
         logger.info(f"Starting clean_jobs() for {self.extractor_name}...")
         cleaned = []
@@ -132,7 +131,7 @@ class BaseCleaner(ABC):
         raise NotImplementedError("Subclass must implement transform()")
     
     @staticmethod
-    @handle_errors
+    @handle_errors()
     def save_jobs(filename: str, jobs: List[Dict]) -> bool:
         logger.info(f"Saving {len(jobs)} jobs to {filename}...")
         # Remove None values
