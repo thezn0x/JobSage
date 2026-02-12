@@ -5,3 +5,4 @@ pytest>=7.4.0 # For Testing
 fastapi[standard]>=0.128.0 # For the REST API
 uvicorn>=0.40.0 # For running the REST API
 apscheduler>=3.11.2 # For scheduler
+psycopg[binary]==3.1.18
