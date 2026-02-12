@@ -14,3 +14,4 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 EXTRACTORS = config["extractors"]
 TRANSFORMERS = config["transformers"]
 LOADERS = config["loaders"]
+SCHEDULER = config["scheduler"]

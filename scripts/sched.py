@@ -4,6 +4,7 @@ import time
 from datetime import datetime
 from src.utils.logger import get_logger
 from apscheduler.schedulers.blocking import BlockingScheduler
+from config.settings import SCHEDULER
 
 logger = get_logger(__name__)
 
@@ -67,8 +68,8 @@ def main():
     scheduler.add_job(
         run_etl,
         trigger='cron',
-        hour=2,
-        minute=0,
+        hour=SCHEDULER['hour'],
+        minute=SCHEDULER['minute'],
         id='daily_etl',
         name='Daily ETL Pipeline',
         replace_existing=True

@@ -36,3 +36,7 @@ base_url ='https://www.careerjet.com.pk'
 [loaders.rozee]
 platform_name ='rozee.pk'
 base_url ='https://www.rozee.pk'
+
+[scheduler]
+hour=2
+minute=0
