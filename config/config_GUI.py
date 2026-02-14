@@ -1,111 +1,84 @@
+"""
+JobSage Configuration GUI
+A modern graphical interface for editing JobSage ETL configuration
+Made by Ai!
+Obviously I wouldn't type it all myself
+
+-Zn0x
+"""
+
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
-import configparser
-from pathlib import Path
+import tomllib
 import json
+from pathlib import Path
+from typing import Dict, Any
 
-class ConfigGUI:
+
+class JobSageConfigGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("SkillScout Configuration")
-        self.root.geometry("1200x800")
+        self.root.title("JobSage Configuration Manager")
+        self.root.geometry("1400x900")
         
-        # Load config
-        self.config = configparser.ConfigParser()
-        self.config_file = "config.toml"
-        self.load_config()
+        # Configuration file path
+        self.config_file = Path("config/config.toml")
+        self.config_data = {}
         
-        # Set style
-        self.setup_styles()
-        
-        # Create UI
-        self.create_widgets()
-        
-    def setup_styles(self):
-        """Setup modern styling"""
-        style = ttk.Style()
-        style.theme_use('clam')
-        
-        # Configure colors
-        self.bg_color = "#f5f5f5"
-        self.card_bg = "#ffffff"
-        self.accent_color = "#2196f3"
-        self.secondary_color = "#ff9800"
-        
-        # Configure styles
-        style.configure('Title.TLabel', font=('Segoe UI', 24, 'bold'), background=self.bg_color)
-        style.configure('Section.TLabel', font=('Segoe UI', 14, 'bold'), background=self.bg_color)
-        style.configure('Card.TFrame', background=self.card_bg, relief='raised', borderwidth=1)
-        style.configure('Accent.TButton', font=('Segoe UI', 10), background=self.accent_color, foreground='white')
-        style.configure('Secondary.TButton', font=('Segoe UI', 10), background=self.secondary_color, foreground='white')
-        
-    def load_config(self):
-        """Load configuration from file"""
-        try:
-            with open(self.config_file, 'r') as f:
-                # Simple parsing for TOML-like structure
-                content = f.read()
-                self.parse_toml(content)
-        except FileNotFoundError:
-            self.create_default_config()
-            
-    def parse_toml(self, content):
-        """Simple TOML parser for the config structure"""
-        self.parsed_config = {
-            'extractors': {},
-            'transformers': {},
-            'loaders': {}
+        # Color scheme
+        self.colors = {
+            'bg': '#1e1e1e',
+            'fg': '#ffffff',
+            'accent': '#007acc',
+            'secondary': '#2d2d2d',
+            'success': '#4ec9b0',
+            'warning': '#ce9178',
+            'error': '#f48771'
         }
         
-        current_section = None
-        subsection = None
+        # Configure root window
+        self.root.configure(bg=self.colors['bg'])
         
-        for line in content.split('\n'):
-            line = line.strip()
-            if not line or line.startswith('#'):
-                continue
-                
-            if line.startswith('[') and line.endswith(']'):
-                section = line[1:-1]
-                if '.' in section:
-                    current_section, subsection = section.split('.', 1)
-                    if subsection not in self.parsed_config[current_section]:
-                        self.parsed_config[current_section][subsection] = {}
-                else:
-                    current_section = section
-                    subsection = None
-            elif '=' in line:
-                key, value = line.split('=', 1)
-                key = key.strip()
-                value = value.strip().strip('"\'')
-                
-                if subsection:
-                    self.parsed_config[current_section][subsection][key] = value
-                else:
-                    if current_section not in self.parsed_config:
-                        self.parsed_config[current_section] = {}
-                    self.parsed_config[current_section][key] = value
-                    
+        # Load configuration
+        self.load_config()
+        
+        # Setup UI
+        self.create_ui()
+        
+    def load_config(self):
+        """Load TOML configuration file"""
+        try:
+            if self.config_file.exists():
+                with open(self.config_file, 'rb') as f:
+                    self.config_data = tomllib.load(f)
+            else:
+                self.create_default_config()
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load config: {e}")
+            self.create_default_config()
+    
     def create_default_config(self):
         """Create default configuration"""
-        self.parsed_config = {
+        self.config_data = {
             'extractors': {
+                'output_dir': 'data/raw',
                 'careerjet': {
-                    'enabled': 'true',
-                    'max_pages': '2',
+                    'enabled': True,
+                    'max_pages': 2,
                     'base_url': 'https://www.careerjet.com.pk/jobs?l=Pakistan&nw=1&s=',
                     'output_path': 'data/raw/careerjet.json',
                     'card': 'ul.jobs li article.job'
                 },
                 'rozee': {
-                    'enabled': 'true',
-                    'max_pages': '2',
+                    'enabled': True,
+                    'max_pages': 2,
                     'base_url': 'https://www.rozee.pk/job/jsearch/q/',
                     'output_path': 'data/raw/rozee.json',
                     'card': 'div.job'
                 }
             },
             'transformers': {
+                'output_dir': 'data/curated',
                 'careerjet': {
                     'output_path': 'data/curated/cleaned_careerjet.json',
                     'date_pattern': r'\d+\s+(?:second|minute|hour|day|week|month|year)s?\s+ago'
@@ -116,366 +89,755 @@ class ConfigGUI:
                 }
             },
             'loaders': {
-                'dotenv_path': 'config/.env'
+                'dotenv_path': 'config/.env',
+                'careerjet': {
+                    'platform_name': 'careerjet.pk',
+                    'base_url': 'https://www.careerjet.com.pk'
+                },
+                'rozee': {
+                    'platform_name': 'rozee.pk',
+                    'base_url': 'https://www.rozee.pk'
+                }
+            },
+            'scheduler': {
+                'hour': 2,
+                'minute': 0
             }
         }
-        
-    def create_widgets(self):
-        """Create all GUI widgets"""
-        # Main container
-        main_container = tk.Frame(self.root, bg=self.bg_color)
-        main_container.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
-        
+    
+    def create_ui(self):
+        """Create the main user interface"""
         # Header
-        header_frame = tk.Frame(main_container, bg=self.bg_color)
-        header_frame.pack(fill=tk.X, pady=(0, 20))
+        self.create_header()
         
-        title_label = ttk.Label(header_frame, text="SkillScout Configuration", style='Title.TLabel')
-        title_label.pack(side=tk.LEFT)
+        # Main content area with tabs
+        self.create_tabs()
         
-        # Control buttons
-        button_frame = tk.Frame(header_frame, bg=self.bg_color)
-        button_frame.pack(side=tk.RIGHT)
+        # Footer with action buttons
+        self.create_footer()
+    
+    def create_header(self):
+        """Create application header"""
+        header = tk.Frame(self.root, bg=self.colors['accent'], height=80)
+        header.pack(fill=tk.X, padx=0, pady=0)
+        header.pack_propagate(False)
         
-        ttk.Button(button_frame, text="Save Config", 
-                  command=self.save_config, style='Accent.TButton').pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Load Config", 
-                  command=self.load_config_file, style='Secondary.TButton').pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Export JSON", 
-                  command=self.export_json, style='Accent.TButton').pack(side=tk.LEFT, padx=5)
+        title = tk.Label(
+            header,
+            text="JobSage Configuration Manager",
+            font=('Segoe UI', 24, 'bold'),
+            bg=self.colors['accent'],
+            fg='white'
+        )
+        title.pack(side=tk.LEFT, padx=20, pady=20)
         
-        # Notebook for tabs
-        self.notebook = ttk.Notebook(main_container)
-        self.notebook.pack(fill=tk.BOTH, expand=True)
+        subtitle = tk.Label(
+            header,
+            text="ETL Pipeline Configuration",
+            font=('Segoe UI', 12),
+            bg=self.colors['accent'],
+            fg='white'
+        )
+        subtitle.pack(side=tk.LEFT, padx=5, pady=20)
+    
+    def create_tabs(self):
+        """Create tabbed interface"""
+        # Configure style for dark theme
+        style = ttk.Style()
+        style.theme_use('default')
+        
+        # Configure tab colors
+        style.configure('TNotebook', background=self.colors['bg'], borderwidth=0)
+        style.configure('TNotebook.Tab', 
+                       background=self.colors['secondary'],
+                       foreground=self.colors['fg'],
+                       padding=[20, 10],
+                       font=('Segoe UI', 10, 'bold'))
+        style.map('TNotebook.Tab',
+                 background=[('selected', self.colors['accent'])],
+                 foreground=[('selected', 'white')])
+        
+        # Create notebook
+        self.notebook = ttk.Notebook(self.root)
+        self.notebook.pack(fill=tk.BOTH, expand=True, padx=20, pady=(10, 20))
         
         # Create tabs
         self.create_extractors_tab()
         self.create_transformers_tab()
         self.create_loaders_tab()
+        self.create_scheduler_tab()
         self.create_preview_tab()
-        
+    
     def create_extractors_tab(self):
         """Create extractors configuration tab"""
-        tab = ttk.Frame(self.notebook)
-        self.notebook.add(tab, text="Extractors")
+        tab = tk.Frame(self.notebook, bg=self.colors['bg'])
+        self.notebook.add(tab, text='Extractors')
         
-        # General extractors settings
-        general_frame = ttk.LabelFrame(tab, text="General Settings", padding=10)
-        general_frame.pack(fill=tk.X, padx=10, pady=10)
+        # Create scrollable canvas
+        canvas = tk.Canvas(tab, bg=self.colors['bg'], highlightthickness=0)
+        scrollbar = ttk.Scrollbar(tab, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas, bg=self.colors['bg'])
         
-        ttk.Label(general_frame, text="Output Directory:").grid(row=0, column=0, sticky=tk.W, pady=5)
-        self.extractors_output_dir = tk.StringVar(value=self.parsed_config.get('extractors', {}).get('output_dir', 'data/raw'))
-        ttk.Entry(general_frame, textvariable=self.extractors_output_dir, width=60).grid(row=0, column=1, padx=10, pady=5)
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
         
-        # CareerJet settings
-        careerjet_frame = ttk.LabelFrame(tab, text="CareerJet Settings", padding=10)
-        careerjet_frame.pack(fill=tk.X, padx=10, pady=10)
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
         
-        self.create_extractor_fields(careerjet_frame, 'careerjet', 0)
+        # General Settings
+        general_frame = self.create_section_frame(
+            scrollable_frame,
+            "General Extractor Settings"
+        )
+        general_frame.pack(fill=tk.X, padx=20, pady=10)
         
-        # Rozee settings
-        rozee_frame = ttk.LabelFrame(tab, text="Rozee Settings", padding=10)
-        rozee_frame.pack(fill=tk.X, padx=10, pady=10)
+        self.extractor_output_dir = self.create_text_field(
+            general_frame,
+            "Output Directory:",
+            self.config_data['extractors'].get('output_dir', 'data/raw')
+        )
         
-        self.create_extractor_fields(rozee_frame, 'rozee', 0)
+        # Rozee Extractor
+        rozee_frame = self.create_section_frame(scrollable_frame, "Rozee.pk Extractor")
+        rozee_frame.pack(fill=tk.X, padx=20, pady=10)
         
-    def create_extractor_fields(self, parent, name, row_start):
-        """Create fields for an extractor"""
-        extractor_data = self.parsed_config['extractors'].get(name, {})
+        rozee_config = self.config_data['extractors'].get('rozee', {})
         
-        # Enabled checkbox
-        self.var_enabled = tk.BooleanVar(value=extractor_data.get('enabled', 'true').lower() == 'true')
-        ttk.Checkbutton(parent, text="Enabled", variable=self.var_enabled).grid(row=row_start, column=0, sticky=tk.W, pady=5)
-        setattr(self, f"{name}_enabled", self.var_enabled)
+        self.rozee_enabled = self.create_checkbox(
+            rozee_frame,
+            "Enabled",
+            rozee_config.get('enabled', True)
+        )
         
-        # Max pages
-        ttk.Label(parent, text="Max Pages:").grid(row=row_start, column=1, sticky=tk.W, pady=5)
-        self.var_max_pages = tk.StringVar(value=extractor_data.get('max_pages', '2'))
-        ttk.Entry(parent, textvariable=self.var_max_pages, width=10).grid(row=row_start, column=2, padx=10, pady=5)
-        setattr(self, f"{name}_max_pages", self.var_max_pages)
+        self.rozee_max_pages = self.create_number_field(
+            rozee_frame,
+            "Maximum Pages:",
+            rozee_config.get('max_pages', 2)
+        )
         
-        # Base URL
-        ttk.Label(parent, text="Base URL:").grid(row=row_start+1, column=0, sticky=tk.W, pady=5)
-        self.var_base_url = tk.StringVar(value=extractor_data.get('base_url', ''))
-        ttk.Entry(parent, textvariable=self.var_base_url, width=80).grid(row=row_start+1, column=1, columnspan=3, sticky=tk.W, padx=10, pady=5)
-        setattr(self, f"{name}_base_url", self.var_base_url)
+        self.rozee_base_url = self.create_text_field(
+            rozee_frame,
+            "Base URL:",
+            rozee_config.get('base_url', '')
+        )
         
-        # Output path
-        ttk.Label(parent, text="Output Path:").grid(row=row_start+2, column=0, sticky=tk.W, pady=5)
-        self.var_output_path = tk.StringVar(value=extractor_data.get('output_path', ''))
-        ttk.Entry(parent, textvariable=self.var_output_path, width=60).grid(row=row_start+2, column=1, columnspan=2, sticky=tk.W, padx=10, pady=5)
-        ttk.Button(parent, text="Browse", command=lambda: self.browse_file(self.var_output_path)).grid(row=row_start+2, column=3, padx=5, pady=5)
-        setattr(self, f"{name}_output_path", self.var_output_path)
+        self.rozee_output_path = self.create_text_field(
+            rozee_frame,
+            "Output Path:",
+            rozee_config.get('output_path', '')
+        )
         
-        # Card selector
-        ttk.Label(parent, text="Card Selector:").grid(row=row_start+3, column=0, sticky=tk.W, pady=5)
-        self.var_card = tk.StringVar(value=extractor_data.get('card', ''))
-        ttk.Entry(parent, textvariable=self.var_card, width=80).grid(row=row_start+3, column=1, columnspan=3, sticky=tk.W, padx=10, pady=5)
-        setattr(self, f"{name}_card", self.var_card)
+        self.rozee_card = self.create_text_field(
+            rozee_frame,
+            "CSS Selector (Card):",
+            rozee_config.get('card', '')
+        )
         
+        # Careerjet Extractor
+        careerjet_frame = self.create_section_frame(scrollable_frame, "Careerjet.pk Extractor")
+        careerjet_frame.pack(fill=tk.X, padx=20, pady=10)
+        
+        careerjet_config = self.config_data['extractors'].get('careerjet', {})
+        
+        self.careerjet_enabled = self.create_checkbox(
+            careerjet_frame,
+            "Enabled",
+            careerjet_config.get('enabled', True)
+        )
+        
+        self.careerjet_max_pages = self.create_number_field(
+            careerjet_frame,
+            "Maximum Pages:",
+            careerjet_config.get('max_pages', 2)
+        )
+        
+        self.careerjet_base_url = self.create_text_field(
+            careerjet_frame,
+            "Base URL:",
+            careerjet_config.get('base_url', '')
+        )
+        
+        self.careerjet_output_path = self.create_text_field(
+            careerjet_frame,
+            "Output Path:",
+            careerjet_config.get('output_path', '')
+        )
+        
+        self.careerjet_card = self.create_text_field(
+            careerjet_frame,
+            "CSS Selector (Card):",
+            careerjet_config.get('card', '')
+        )
+        
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+    
     def create_transformers_tab(self):
         """Create transformers configuration tab"""
-        tab = ttk.Frame(self.notebook)
-        self.notebook.add(tab, text="Transformers")
+        tab = tk.Frame(self.notebook, bg=self.colors['bg'])
+        self.notebook.add(tab, text='Transformers')
         
-        # General transformers settings
-        general_frame = ttk.LabelFrame(tab, text="General Settings", padding=10)
-        general_frame.pack(fill=tk.X, padx=10, pady=10)
+        # General Settings
+        general_frame = self.create_section_frame(tab, "General Transformer Settings")
+        general_frame.pack(fill=tk.X, padx=20, pady=10)
         
-        ttk.Label(general_frame, text="Output Directory:").grid(row=0, column=0, sticky=tk.W, pady=5)
-        self.transformers_output_dir = tk.StringVar(value=self.parsed_config.get('transformers', {}).get('output_dir', 'data/curated'))
-        ttk.Entry(general_frame, textvariable=self.transformers_output_dir, width=60).grid(row=0, column=1, padx=10, pady=5)
+        self.transformer_output_dir = self.create_text_field(
+            general_frame,
+            "Output Directory:",
+            self.config_data['transformers'].get('output_dir', 'data/curated')
+        )
         
-        # CareerJet transformer
-        careerjet_frame = ttk.LabelFrame(tab, text="CareerJet Transformer", padding=10)
-        careerjet_frame.pack(fill=tk.X, padx=10, pady=10)
+        # Rozee Transformer
+        rozee_frame = self.create_section_frame(tab, "Rozee Transformer")
+        rozee_frame.pack(fill=tk.X, padx=20, pady=10)
         
-        self.create_transformer_fields(careerjet_frame, 'careerjet', 0)
+        rozee_config = self.config_data['transformers'].get('rozee', {})
         
-        # Rozee transformer
-        rozee_frame = ttk.LabelFrame(tab, text="Rozee Transformer", padding=10)
-        rozee_frame.pack(fill=tk.X, padx=10, pady=10)
+        self.rozee_trans_output = self.create_text_field(
+            rozee_frame,
+            "Output Path:",
+            rozee_config.get('output_path', '')
+        )
         
-        self.create_transformer_fields(rozee_frame, 'rozee', 0)
+        self.rozee_date_pattern = self.create_text_field(
+            rozee_frame,
+            "Date Pattern (Regex):",
+            rozee_config.get('date_pattern', '')
+        )
         
-    def create_transformer_fields(self, parent, name, row_start):
-        """Create fields for a transformer"""
-        transformer_data = self.parsed_config['transformers'].get(name, {})
+        # Careerjet Transformer
+        careerjet_frame = self.create_section_frame(tab, "Careerjet Transformer")
+        careerjet_frame.pack(fill=tk.X, padx=20, pady=10)
         
-        # Output path
-        ttk.Label(parent, text="Output Path:").grid(row=row_start, column=0, sticky=tk.W, pady=5)
-        self.var_trans_output = tk.StringVar(value=transformer_data.get('output_path', ''))
-        ttk.Entry(parent, textvariable=self.var_trans_output, width=60).grid(row=row_start, column=1, columnspan=2, sticky=tk.W, padx=10, pady=5)
-        ttk.Button(parent, text="Browse", command=lambda: self.browse_file(self.var_trans_output)).grid(row=row_start, column=3, padx=5, pady=5)
-        setattr(self, f"trans_{name}_output", self.var_trans_output)
+        careerjet_config = self.config_data['transformers'].get('careerjet', {})
         
-        # Date pattern
-        ttk.Label(parent, text="Date Pattern (Regex):").grid(row=row_start+1, column=0, sticky=tk.W, pady=5)
-        self.var_date_pattern = tk.StringVar(value=transformer_data.get('date_pattern', ''))
-        ttk.Entry(parent, textvariable=self.var_date_pattern, width=80).grid(row=row_start+1, column=1, columnspan=3, sticky=tk.W, padx=10, pady=5)
-        setattr(self, f"trans_{name}_pattern", self.var_date_pattern)
+        self.careerjet_trans_output = self.create_text_field(
+            careerjet_frame,
+            "Output Path:",
+            careerjet_config.get('output_path', '')
+        )
         
+        self.careerjet_date_pattern = self.create_text_field(
+            careerjet_frame,
+            "Date Pattern (Regex):",
+            careerjet_config.get('date_pattern', '')
+        )
+    
     def create_loaders_tab(self):
         """Create loaders configuration tab"""
-        tab = ttk.Frame(self.notebook)
-        self.notebook.add(tab, text="Loaders")
+        tab = tk.Frame(self.notebook, bg=self.colors['bg'])
+        self.notebook.add(tab, text='Loaders')
         
-        frame = ttk.LabelFrame(tab, text="Loader Settings", padding=20)
+        # General Settings
+        general_frame = self.create_section_frame(tab, "General Loader Settings")
+        general_frame.pack(fill=tk.X, padx=20, pady=10)
+        
+        self.loader_dotenv_path = self.create_text_field(
+            general_frame,
+            "Environment File Path:",
+            self.config_data['loaders'].get('dotenv_path', 'config/.env')
+        )
+        
+        # Rozee Platform
+        rozee_frame = self.create_section_frame(tab, "Rozee Platform Configuration")
+        rozee_frame.pack(fill=tk.X, padx=20, pady=10)
+        
+        rozee_config = self.config_data['loaders'].get('rozee', {})
+        
+        self.rozee_platform_name = self.create_text_field(
+            rozee_frame,
+            "Platform Name:",
+            rozee_config.get('platform_name', 'rozee.pk')
+        )
+        
+        self.rozee_platform_url = self.create_text_field(
+            rozee_frame,
+            "Base URL:",
+            rozee_config.get('base_url', 'https://www.rozee.pk')
+        )
+        
+        # Careerjet Platform
+        careerjet_frame = self.create_section_frame(tab, "Careerjet Platform Configuration")
+        careerjet_frame.pack(fill=tk.X, padx=20, pady=10)
+        
+        careerjet_config = self.config_data['loaders'].get('careerjet', {})
+        
+        self.careerjet_platform_name = self.create_text_field(
+            careerjet_frame,
+            "Platform Name:",
+            careerjet_config.get('platform_name', 'careerjet.pk')
+        )
+        
+        self.careerjet_platform_url = self.create_text_field(
+            careerjet_frame,
+            "Base URL:",
+            careerjet_config.get('base_url', 'https://www.careerjet.com.pk')
+        )
+    
+    def create_scheduler_tab(self):
+        """Create scheduler configuration tab"""
+        tab = tk.Frame(self.notebook, bg=self.colors['bg'])
+        self.notebook.add(tab, text='Scheduler')
+        
+        frame = self.create_section_frame(tab, "Automated ETL Schedule")
         frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         
-        ttk.Label(frame, text="Environment File Path:").pack(anchor=tk.W, pady=(0, 5))
+        scheduler_config = self.config_data.get('scheduler', {})
         
-        loader_data = self.parsed_config.get('loaders', {})
-        self.var_dotenv = tk.StringVar(value=loader_data.get('dotenv_path', 'config/.env'))
-        
-        path_frame = tk.Frame(frame)
-        path_frame.pack(fill=tk.X, pady=(0, 20))
-        
-        ttk.Entry(path_frame, textvariable=self.var_dotenv, width=60).pack(side=tk.LEFT, padx=(0, 10))
-        ttk.Button(path_frame, text="Browse", 
-                  command=lambda: self.browse_file(self.var_dotenv)).pack(side=tk.LEFT)
-        
-        # Status info
-        info_frame = ttk.LabelFrame(frame, text="Information", padding=10)
-        info_frame.pack(fill=tk.BOTH, expand=True)
-        
-        info_text = tk.Text(info_frame, height=10, wrap=tk.WORD, font=('Consolas', 10))
-        info_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-        
-        info = """Loaders Configuration:
-        
-• dotenv_path: Path to the environment file containing database credentials
-• The .env file should contain connection strings for your database
-• Example .env content:
-  
-  DB_HOST=localhost
-  DB_PORT=5432
-  DB_NAME=jobs
-  DB_USER=user
-  DB_PASSWORD=password
-  
-• This configuration is used in the final loading stage of the pipeline"""
-        
-        info_text.insert(1.0, info)
-        info_text.config(state=tk.DISABLED)
-        
-    def create_preview_tab(self):
-        """Create preview tab to show the configuration"""
-        tab = ttk.Frame(self.notebook)
-        self.notebook.add(tab, text="Preview")
-        
-        # Preview text
-        self.preview_text = tk.Text(tab, wrap=tk.NONE, font=('Consolas', 10))
-        self.preview_text.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-        
-        # Add scrollbars
-        v_scrollbar = ttk.Scrollbar(tab, orient="vertical", command=self.preview_text.yview)
-        v_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        h_scrollbar = ttk.Scrollbar(tab, orient="horizontal", command=self.preview_text.xview)
-        h_scrollbar.pack(side=tk.BOTTOM, fill=tk.X)
-        
-        self.preview_text.configure(yscrollcommand=v_scrollbar.set, xscrollcommand=h_scrollbar.set)
-        
-        # Update preview button
-        ttk.Button(tab, text="Update Preview", 
-                  command=self.update_preview, style='Accent.TButton').pack(pady=10)
-        
-        self.update_preview()
-        
-    def browse_file(self, variable):
-        """Browse for file/directory"""
-        filename = filedialog.asksaveasfilename(
-            defaultextension=".json",
-            filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
+        # Hour setting
+        self.scheduler_hour = self.create_number_field(
+            frame,
+            "Hour (0-23):",
+            scheduler_config.get('hour', 2),
+            min_val=0,
+            max_val=23
         )
-        if filename:
-            variable.set(filename)
-            
+        
+        # Minute setting
+        self.scheduler_minute = self.create_number_field(
+            frame,
+            "Minute (0-59):",
+            scheduler_config.get('minute', 0),
+            min_val=0,
+            max_val=59
+        )
+        
+        # Info text
+        info_frame = tk.Frame(frame, bg=self.colors['secondary'], relief=tk.RIDGE, borderwidth=2)
+        info_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=20)
+        
+        info_label = tk.Label(
+            info_frame,
+            text="Scheduler Information",
+            font=('Segoe UI', 12, 'bold'),
+            bg=self.colors['secondary'],
+            fg=self.colors['success']
+        )
+        info_label.pack(anchor=tk.W, padx=10, pady=(10, 5))
+        
+        info_text = tk.Text(
+            info_frame,
+            height=12,
+            wrap=tk.WORD,
+            font=('Consolas', 10),
+            bg=self.colors['bg'],
+            fg=self.colors['fg'],
+            borderwidth=0
+        )
+        info_text.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        info_content = """The scheduler controls when the automated ETL pipeline runs.
+
+Configuration:
+• Hour: The hour of day when ETL runs (24-hour format)
+• Minute: The minute of the hour when ETL runs
+
+Examples:
+• Hour: 2, Minute: 0  → Runs at 2:00 AM daily
+• Hour: 14, Minute: 30 → Runs at 2:30 PM daily
+• Hour: 0, Minute: 0  → Runs at midnight daily
+
+The ETL pipeline will:
+1. Extract jobs from all enabled platforms
+2. Transform and clean the data
+3. Load results into the database
+
+Logs are stored in the logs/ directory."""
+        
+        info_text.insert(1.0, info_content)
+        info_text.config(state=tk.DISABLED)
+    
+    def create_preview_tab(self):
+        """Create configuration preview tab"""
+        tab = tk.Frame(self.notebook, bg=self.colors['bg'])
+        self.notebook.add(tab, text='Preview')
+        
+        # Toolbar
+        toolbar = tk.Frame(tab, bg=self.colors['secondary'], height=50)
+        toolbar.pack(fill=tk.X, padx=0, pady=0)
+        toolbar.pack_propagate(False)
+        
+        update_btn = tk.Button(
+            toolbar,
+            text="Update Preview",
+            command=self.update_preview,
+            bg=self.colors['accent'],
+            fg='white',
+            font=('Segoe UI', 10, 'bold'),
+            relief=tk.FLAT,
+            padx=20,
+            pady=8,
+            cursor='hand2'
+        )
+        update_btn.pack(side=tk.LEFT, padx=10, pady=10)
+        
+        # Preview text area
+        text_frame = tk.Frame(tab, bg=self.colors['bg'])
+        text_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+        
+        # Scrollbar
+        scrollbar = tk.Scrollbar(text_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Text widget
+        self.preview_text = tk.Text(
+            text_frame,
+            wrap=tk.NONE,
+            font=('Consolas', 10),
+            bg=self.colors['bg'],
+            fg=self.colors['fg'],
+            insertbackground=self.colors['fg'],
+            yscrollcommand=scrollbar.set
+        )
+        self.preview_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.config(command=self.preview_text.yview)
+        
+        # Initial preview
+        self.update_preview()
+    
+    def create_footer(self):
+        """Create footer with action buttons"""
+        footer = tk.Frame(self.root, bg=self.colors['secondary'], height=70)
+        footer.pack(fill=tk.X, side=tk.BOTTOM)
+        footer.pack_propagate(False)
+        
+        # Button container
+        button_container = tk.Frame(footer, bg=self.colors['secondary'])
+        button_container.pack(side=tk.RIGHT, padx=20, pady=15)
+        
+        # Save button
+        save_btn = tk.Button(
+            button_container,
+            text="Save Configuration",
+            command=self.save_config,
+            bg=self.colors['success'],
+            fg='white',
+            font=('Segoe UI', 11, 'bold'),
+            relief=tk.FLAT,
+            padx=30,
+            pady=12,
+            cursor='hand2'
+        )
+        save_btn.pack(side=tk.LEFT, padx=5)
+        
+        # Export button
+        export_btn = tk.Button(
+            button_container,
+            text="Export JSON",
+            command=self.export_json,
+            bg=self.colors['accent'],
+            fg='white',
+            font=('Segoe UI', 11, 'bold'),
+            relief=tk.FLAT,
+            padx=30,
+            pady=12,
+            cursor='hand2'
+        )
+        export_btn.pack(side=tk.LEFT, padx=5)
+        
+        # Load button
+        load_btn = tk.Button(
+            button_container,
+            text="Load Config",
+            command=self.load_config_file,
+            bg=self.colors['warning'],
+            fg='white',
+            font=('Segoe UI', 11, 'bold'),
+            relief=tk.FLAT,
+            padx=30,
+            pady=12,
+            cursor='hand2'
+        )
+        load_btn.pack(side=tk.LEFT, padx=5)
+    
+    # UI Helper Methods
+    
+    def create_section_frame(self, parent, title):
+        """Create a styled section frame"""
+        frame = tk.Frame(parent, bg=self.colors['secondary'], relief=tk.RIDGE, borderwidth=2)
+        
+        title_label = tk.Label(
+            frame,
+            text=title,
+            font=('Segoe UI', 12, 'bold'),
+            bg=self.colors['secondary'],
+            fg=self.colors['accent']
+        )
+        title_label.pack(anchor=tk.W, padx=10, pady=10)
+        
+        return frame
+    
+    def create_text_field(self, parent, label_text, default_value):
+        """Create a labeled text entry field"""
+        container = tk.Frame(parent, bg=self.colors['secondary'])
+        container.pack(fill=tk.X, padx=10, pady=5)
+        
+        label = tk.Label(
+            container,
+            text=label_text,
+            font=('Segoe UI', 10),
+            bg=self.colors['secondary'],
+            fg=self.colors['fg'],
+            width=20,
+            anchor=tk.W
+        )
+        label.pack(side=tk.LEFT, padx=5)
+        
+        var = tk.StringVar(value=str(default_value))
+        entry = tk.Entry(
+            container,
+            textvariable=var,
+            font=('Segoe UI', 10),
+            bg=self.colors['bg'],
+            fg=self.colors['fg'],
+            insertbackground=self.colors['fg'],
+            relief=tk.FLAT,
+            borderwidth=2
+        )
+        entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+        
+        return var
+    
+    def create_number_field(self, parent, label_text, default_value, min_val=0, max_val=100):
+        """Create a labeled number entry field with validation"""
+        container = tk.Frame(parent, bg=self.colors['secondary'])
+        container.pack(fill=tk.X, padx=10, pady=5)
+        
+        label = tk.Label(
+            container,
+            text=label_text,
+            font=('Segoe UI', 10),
+            bg=self.colors['secondary'],
+            fg=self.colors['fg'],
+            width=20,
+            anchor=tk.W
+        )
+        label.pack(side=tk.LEFT, padx=5)
+        
+        var = tk.IntVar(value=int(default_value))
+        spinbox = tk.Spinbox(
+            container,
+            from_=min_val,
+            to=max_val,
+            textvariable=var,
+            font=('Segoe UI', 10),
+            bg=self.colors['bg'],
+            fg=self.colors['fg'],
+            insertbackground=self.colors['fg'],
+            relief=tk.FLAT,
+            borderwidth=2,
+            width=10
+        )
+        spinbox.pack(side=tk.LEFT, padx=5)
+        
+        return var
+    
+    def create_checkbox(self, parent, label_text, default_value):
+        """Create a checkbox"""
+        var = tk.BooleanVar(value=bool(default_value))
+        
+        checkbox = tk.Checkbutton(
+            parent,
+            text=label_text,
+            variable=var,
+            font=('Segoe UI', 10),
+            bg=self.colors['secondary'],
+            fg=self.colors['fg'],
+            selectcolor=self.colors['bg'],
+            activebackground=self.colors['secondary'],
+            activeforeground=self.colors['accent']
+        )
+        checkbox.pack(anchor=tk.W, padx=10, pady=5)
+        
+        return var
+    
+    # Data Methods
+    
     def gather_data(self):
-        """Gather data from all fields"""
-        data = {
+        """Gather all configuration data from UI fields"""
+        return {
             'extractors': {
-                'output_dir': self.extractors_output_dir.get(),
-                'careerjet': {
-                    'enabled': str(getattr(self, 'careerjet_enabled').get()).lower(),
-                    'max_pages': getattr(self, 'careerjet_max_pages').get(),
-                    'base_url': getattr(self, 'careerjet_base_url').get(),
-                    'output_path': getattr(self, 'careerjet_output_path').get(),
-                    'card': getattr(self, 'careerjet_card').get()
-                },
+                'output_dir': self.extractor_output_dir.get(),
                 'rozee': {
-                    'enabled': str(getattr(self, 'rozee_enabled').get()).lower(),
-                    'max_pages': getattr(self, 'rozee_max_pages').get(),
-                    'base_url': getattr(self, 'rozee_base_url').get(),
-                    'output_path': getattr(self, 'rozee_output_path').get(),
-                    'card': getattr(self, 'rozee_card').get()
+                    'enabled': self.rozee_enabled.get(),
+                    'max_pages': self.rozee_max_pages.get(),
+                    'base_url': self.rozee_base_url.get(),
+                    'output_path': self.rozee_output_path.get(),
+                    'card': self.rozee_card.get()
+                },
+                'careerjet': {
+                    'enabled': self.careerjet_enabled.get(),
+                    'max_pages': self.careerjet_max_pages.get(),
+                    'base_url': self.careerjet_base_url.get(),
+                    'output_path': self.careerjet_output_path.get(),
+                    'card': self.careerjet_card.get()
                 }
             },
             'transformers': {
-                'output_dir': self.transformers_output_dir.get(),
-                'careerjet': {
-                    'output_path': getattr(self, 'trans_careerjet_output').get(),
-                    'date_pattern': getattr(self, 'trans_careerjet_pattern').get()
-                },
+                'output_dir': self.transformer_output_dir.get(),
                 'rozee': {
-                    'output_path': getattr(self, 'trans_rozee_output').get(),
-                    'date_pattern': getattr(self, 'trans_rozee_pattern').get()
+                    'output_path': self.rozee_trans_output.get(),
+                    'date_pattern': self.rozee_date_pattern.get()
+                },
+                'careerjet': {
+                    'output_path': self.careerjet_trans_output.get(),
+                    'date_pattern': self.careerjet_date_pattern.get()
                 }
             },
             'loaders': {
-                'dotenv_path': self.var_dotenv.get()
+                'dotenv_path': self.loader_dotenv_path.get(),
+                'rozee': {
+                    'platform_name': self.rozee_platform_name.get(),
+                    'base_url': self.rozee_platform_url.get()
+                },
+                'careerjet': {
+                    'platform_name': self.careerjet_platform_name.get(),
+                    'base_url': self.careerjet_platform_url.get()
+                }
+            },
+            'scheduler': {
+                'hour': self.scheduler_hour.get(),
+                'minute': self.scheduler_minute.get()
             }
         }
-        return data
-        
+    
     def update_preview(self):
-        """Update the preview tab with current configuration"""
+        """Update the configuration preview"""
         data = self.gather_data()
+        toml_str = self.dict_to_toml(data)
         
-        # Format as TOML
-        preview = "[extractors]\n"
-        preview += f"output_dir = \"{data['extractors']['output_dir']}\"\n\n"
-        
-        for name in ['careerjet', 'rozee']:
-            preview += f"[extractors.{name}]\n"
-            extractor = data['extractors'][name]
-            for key, value in extractor.items():
-                preview += f"{key} = '{value}'\n"
-            preview += "\n"
-            
-        preview += "[transformers]\n"
-        preview += f"output_dir = \"{data['transformers']['output_dir']}\"\n\n"
-        
-        for name in ['careerjet', 'rozee']:
-            preview += f"[transformers.{name}]\n"
-            transformer = data['transformers'][name]
-            for key, value in transformer.items():
-                preview += f"{key} = '{value}'\n"
-            preview += "\n"
-            
-        preview += "[loaders]\n"
-        preview += f"dotenv_path = \"{data['loaders']['dotenv_path']}\"\n"
-        
+        self.preview_text.config(state=tk.NORMAL)
         self.preview_text.delete(1.0, tk.END)
-        self.preview_text.insert(1.0, preview)
+        self.preview_text.insert(1.0, toml_str)
+        self.preview_text.config(state=tk.DISABLED)
+    
+    def dict_to_toml(self, data, indent=0):
+        """Convert dictionary to TOML string"""
+        lines = []
         
+        for key, value in data.items():
+            if isinstance(value, dict):
+                # Check if it's a section or inline table
+                has_subsections = any(isinstance(v, dict) for v in value.values())
+                
+                if has_subsections:
+                    # Main section
+                    if indent == 0:
+                        lines.append(f"\n[{key}]")
+                    
+                    for subkey, subvalue in value.items():
+                        if isinstance(subvalue, dict):
+                            # Subsection
+                            lines.append(f"\n[{key}.{subkey}]")
+                            lines.append(self.dict_to_toml(subvalue, indent + 1))
+                        else:
+                            # Simple value
+                            lines.append(self.format_value(subkey, subvalue))
+                else:
+                    # Simple section
+                    if indent == 0:
+                        lines.append(f"\n[{key}]")
+                    lines.append(self.dict_to_toml(value, indent + 1))
+            else:
+                lines.append(self.format_value(key, value))
+        
+        return '\n'.join(filter(None, lines))
+    
+    def format_value(self, key, value):
+        """Format a key-value pair for TOML"""
+        if isinstance(value, bool):
+            return f"{key} = {str(value).lower()}"
+        elif isinstance(value, (int, float)):
+            return f"{key} = {value}"
+        else:
+            # Escape quotes in strings
+            escaped = str(value).replace("'", "\\'")
+            return f"{key} = '{escaped}'"
+    
     def save_config(self):
-        """Save configuration to file"""
+        """Save configuration to TOML file"""
         try:
             data = self.gather_data()
-            with open(self.config_file, 'w') as f:
-                self.write_toml(data, f)
-            messagebox.showinfo("Success", f"Configuration saved to {self.config_file}")
+            toml_str = self.dict_to_toml(data)
+            
+            # Ensure directory exists
+            self.config_file.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Write file
+            with open(self.config_file, 'w', encoding='utf-8') as f:
+                f.write(toml_str)
+            
+            messagebox.showinfo(
+                "Success",
+                f"Configuration saved successfully to:\n{self.config_file}"
+            )
+            
+            # Update preview
             self.update_preview()
+            
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to save configuration: {str(e)}")
+            messagebox.showerror("Error", f"Failed to save configuration:\n{str(e)}")
+    
+    def export_json(self):
+        """Export configuration as JSON"""
+        try:
+            data = self.gather_data()
             
-    def write_toml(self, data, file):
-        """Write data in TOML format"""
-        # Extractors
-        file.write("[extractors]\n")
-        file.write(f"output_dir = \"{data['extractors']['output_dir']}\"\n\n")
-        
-        for name in ['careerjet', 'rozee']:
-            file.write(f"[extractors.{name}]\n")
-            for key, value in data['extractors'][name].items():
-                file.write(f"{key} = '{value}'\n")
-            file.write("\n")
+            filename = filedialog.asksaveasfilename(
+                defaultextension=".json",
+                filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
+                initialfile="jobsage_config.json"
+            )
             
-        # Transformers
-        file.write("[transformers]\n")
-        file.write(f"output_dir = \"{data['transformers']['output_dir']}\"\n\n")
+            if filename:
+                with open(filename, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, indent=2, ensure_ascii=False)
+                
+                messagebox.showinfo(
+                    "Success",
+                    f"Configuration exported to:\n{filename}"
+                )
         
-        for name in ['careerjet', 'rozee']:
-            file.write(f"[transformers.{name}]\n")
-            for key, value in data['transformers'][name].items():
-                file.write(f"{key} = '{value}'\n")
-            file.write("\n")
-            
-        # Loaders
-        file.write("[loaders]\n")
-        file.write(f"dotenv_path = \"{data['loaders']['dotenv_path']}\"\n")
-        
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to export:\n{str(e)}")
+    
     def load_config_file(self):
-        """Load configuration from a file"""
+        """Load configuration from file"""
         filename = filedialog.askopenfilename(
             filetypes=[("TOML files", "*.toml"), ("All files", "*.*")]
         )
-        if filename:
-            try:
-                with open(filename, 'r') as f:
-                    content = f.read()
-                    self.parse_toml(content)
-                    self.update_ui_from_config()
-                    messagebox.showinfo("Success", "Configuration loaded successfully")
-            except Exception as e:
-                messagebox.showerror("Error", f"Failed to load configuration: {str(e)}")
-                
-    def update_ui_from_config(self):
-        """Update UI fields from loaded configuration"""
-        # This is a simplified version - you would need to implement
-        # updating all UI fields from self.parsed_config
-        messagebox.showinfo("Info", "Configuration loaded - restart application to see changes")
         
-    def export_json(self):
-        """Export configuration as JSON"""
-        filename = filedialog.asksaveasfilename(
-            defaultextension=".json",
-            filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
-        )
         if filename:
             try:
-                data = self.gather_data()
-                with open(filename, 'w') as f:
-                    json.dump(data, f, indent=2)
-                messagebox.showinfo("Success", f"Configuration exported to {filename}")
+                with open(filename, 'rb') as f:
+                    self.config_data = tomllib.load(f)
+                
+                # Reload UI
+                self.reload_ui()
+                
+                messagebox.showinfo("Success", "Configuration loaded successfully")
+                
             except Exception as e:
-                messagebox.showerror("Error", f"Failed to export: {str(e)}")
+                messagebox.showerror("Error", f"Failed to load configuration:\n{str(e)}")
+    
+    def reload_ui(self):
+        """Reload UI with current config data"""
+        # This would require recreating all tabs
+        # For simplicity, just show a message
+        messagebox.showinfo(
+            "Reload Required",
+            "Please restart the application to see the loaded configuration"
+        )
+
 
 def main():
+    """Main entry point"""
     root = tk.Tk()
-    app = ConfigGUI(root)
+    app = JobSageConfigGUI(root)
     root.mainloop()
+
 
 if __name__ == "__main__":
     main()

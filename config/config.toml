@@ -1,42 +1,43 @@
-[extractors]
-output_dir = "data/raw"
 
-[extractors.careerjet]
-enabled = true
-max_pages = 2
-base_url = 'https://www.careerjet.com.pk/jobs?l=Pakistan&nw=1&s='
-output_path = "data/raw/careerjet.json"
-card = 'ul.jobs li article.job'
+[extractors]
+output_dir = 'data/raw'
 
 [extractors.rozee]
 enabled = true
 max_pages = 2
 base_url = 'https://www.rozee.pk/job/jsearch/q/'
-output_path = "data/raw/rozee.json"
+output_path = 'data/raw/rozee.json'
 card = 'div.job'
 
-[transformers]
-output_dir = "data/curated"
+[extractors.careerjet]
+enabled = true
+max_pages = 2
+base_url = 'https://www.careerjet.com.pk/jobs?l=Pakistan&nw=1&s='
+output_path = 'data/raw/careerjet.json'
+card = 'ul.jobs li article.job'
 
-[transformers.careerjet]
-output_path = "data/curated/cleaned_careerjet.json"
-date_pattern = '\d+\s+(?:second|minute|hour|day|week|month|year)s?\s+ago'
+[transformers]
+output_dir = 'data/curated'
 
 [transformers.rozee]
-output_path = "data/curated/cleaned_rozee.json"
+output_path = 'data/curated/cleaned_rozee.json'
 date_pattern = '(\d+)\s+(hour|day|week|month)s?\s+ago'
 
-[loaders]
-dotenv_path = "config/.env"
+[transformers.careerjet]
+output_path = 'data/curated/cleaned_careerjet.json'
+date_pattern = '\d+\s+(?:second|minute|hour|day|week|month|year)s?\s+ago'
 
-[loaders.careerjet]
-platform_name ='careerjet.pk'
-base_url ='https://www.careerjet.com.pk'
+[loaders]
+dotenv_path = './.env'
 
 [loaders.rozee]
-platform_name ='rozee.pk'
-base_url ='https://www.rozee.pk'
+platform_name = 'rozee.pk'
+base_url = 'https://www.rozee.pk'
+
+[loaders.careerjet]
+platform_name = 'careerjet.pk'
+base_url = 'https://www.careerjet.com.pk'
 
 [scheduler]
-hour=2
-minute=0
+hour = 2
+minute = 0
